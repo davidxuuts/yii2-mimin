@@ -1,5 +1,5 @@
 {
-    "name": "hscstudio/yii2-mimin",
+    "name": "davidxu/yii2-srbac",
     "description": "Simple RBAC Manager",
     "type": "yii2-extension",
     "keywords": ["yii2","extension"],
@@ -8,6 +8,9 @@
         {
             "name": "Hafid Mukhlasin",
             "email": "hafidmukhlasin@gmail.com"
+        }, {
+            "name": "David Xu",
+            "email": "david.xu.uts@163.com"
         }
     ],
     "require": {
@@ -16,7 +19,7 @@
     },
     "autoload": {
         "psr-4": {
-            "hscstudio\\mimin\\": ""
+            "davidxu\\srbac\\": "src/"
         }
     }
 }

@@ -1,8 +1,8 @@
-Yii2 Mimin
+Yii2 SRbac
 ===============
 Simple RBAC Manager fo Yii 2.0. Minify of [yii2-admin](https://github.com/mdmsoft/yii2-admin) extension with awesome features
 
-[![Latest Stable Version](https://poser.pugx.org/hscstudio/yii2-mimin/v/stable)](https://packagist.org/packages/hscstudio/yii2-mimin) [![Total Downloads](https://poser.pugx.org/hscstudio/yii2-mimin/downloads)](https://packagist.org/packages/hscstudio/yii2-mimin) [![Latest Unstable Version](https://poser.pugx.org/hscstudio/yii2-mimin/v/unstable)](https://packagist.org/packages/hscstudio/yii2-mimin) [![License](https://poser.pugx.org/hscstudio/yii2-mimin/license)](https://packagist.org/packages/hscstudio/yii2-mimin)
+[![Latest Stable Version](https://poser.pugx.org/davidxu/yii2-srbac/v/stable)](https://packagist.org/packages/davidxu/yii2-srbac) [![Total Downloads](https://poser.pugx.org/davidxu/yii2-srbac/downloads)](https://packagist.org/packages/davidxu/yii2-srbac) [![Latest Unstable Version](https://poser.pugx.org/davidxu/yii2-srbac/v/unstable)](https://packagist.org/packages/davidxu/yii2-srbac) [![License](https://poser.pugx.org/davidxu/yii2-srbac/license)](https://packagist.org/packages/davidxu/yii2-srbac)
 
 Attention
 ---------
@@ -16,19 +16,19 @@ The preferred way to install this extension is through [composer](http://getcomp
 Either run
 
 ```
-php composer.phar require --prefer-dist hscstudio/yii2-mimin "~1.1.5"
+php composer.phar require --prefer-dist davidxu/yii2-srbac "~1.1.5"
 ```
 
 or add
 
 ```
-"hscstudio/yii2-mimin": "~1.1.5"
+"davidxu/yii2-srbac": "~1.1.5"
 ```
 
 or add this for install last change
 
 ```
-"hscstudio/yii2-mimin": "~1.*"
+"davidxu/yii2-srbac": "~1.*"
 ```
 
 to the require section of your `composer.json` file.
@@ -42,18 +42,18 @@ Once the extension is installed, simply use it in your code by  :
 in config
 ```php
 'as access' => [
-     'class' => '\hscstudio\mimin\components\AccessControl',
+     'class' => '\davidxu\srbac\components\AccessControl',
 	 'allowActions' => [
 		// add wildcard allowed action here!
 		'site/*',
 		'debug/*',
-		'mimin/*', // only in dev mode
+		'srbac/*', // only in dev mode
 	],
 ],
 ...,
 'modules' => [
-	'mimin' => [
-		'class' => '\hscstudio\mimin\Module',
+	'srbac' => [
+		'class' => '\davidxu\srbac\Module',
 	],
 	...
 ],
@@ -70,11 +70,11 @@ Because this extension use 'yii\rbac\DbManager'as authManager, so You should mig
 
 If You use Yii 2.0.6 version or newer, so then migrate custom table for this extension
 
-```yii migrate --migrationPath=@hscstudio/mimin/migrations```
+```yii migrate --migrationPath=@davidxu/srbac/migrations```
 
 But if You install Yii 2.0.5 version or older, so then migrate custom table for this extension
 
-```yii migrate --migrationPath=@hscstudio/mimin/migrations/old```
+```yii migrate --migrationPath=@davidxu/srbac/migrations/old```
 
 Usage
 -----
@@ -85,14 +85,14 @@ This RBAC manager have three main page, they are:
 To get all action route from application. In here, You can on / off permission so not shown in menu role, rename alias/type of action route, so easy readable by end user.
 You can then access `Route` through the following URL:
 ```
-http://localhost/path/to/index.php?r=mimin/route
+http://localhost/path/to/index.php?r=srbac/route
 ```
 
 ### Role
 To define level access of user, what he superadmin?, staff?, cashier? etc. In this menu, You can assign permission / action route (actions in application, they are create, update, delete, etc) to role.
 You can then access `Role` through the following URL:
 ```
-http://localhost/path/to/index.php?r=mimin/role
+http://localhost/path/to/index.php?r=srbac/role
 ```
 Below screenshoot of route assignment to role
 ![Screenshoot Role](screenshoot.png "Screenshoot Role")
@@ -101,7 +101,7 @@ Below screenshoot of route assignment to role
 For standard user management, create/update/delete user, and assign role to user.
 You can then access `User` through the following URL:
 ```
-http://localhost/path/to/index.php?r=mimin/user
+http://localhost/path/to/index.php?r=srbac/user
 ```
 
 We recommendate you for activate pretty URL.
@@ -112,18 +112,18 @@ Implementation on Widgets
 ### Example dynamic button
 It is used for checking if route right to access
 ```php
-if ((Mimin::checkRoute($this->context->id.'/create'))){
+if ((Srbac::checkRoute($this->context->id.'/create'))){
     echo Html::a('Create Note', ['create'], ['class' => 'btn btn-success']);
 }
 
 // in other case maybe You want ensure same of route so You can add parameter strict true
-if ((Mimin::checkRoute($this->context->id.'/create',true))){
+if ((Srbac::checkRoute($this->context->id.'/create',true))){
 ```
 
 ### Example dynamic menu
 It is is used for filtering right access menu
 ```php
-use hscstudio\mimin\components\Mimin;
+use davidxu\srbac\components\Srbac;
 $menuItems = [
     ['label' => 'Home', 'url' => ['/site/index']],
     ['label' => 'About', 'url' => ['/site/about']],
@@ -146,9 +146,9 @@ else{
     ];
 }
 
-$menuItems = Mimin::filterMenu($menuItems);
+$menuItems = Srbac::filterMenu($menuItems);
 // in other case maybe You want ensure same of route so You can add parameter strict true
-// $menuItems = Mimin::filterMenu($menuItems,true); 
+// $menuItems = Srbac::filterMenu($menuItems,true); 
 
 echo Nav::widget([
     'options' => ['class' => 'navbar-nav navbar-right'],
@@ -158,7 +158,7 @@ echo Nav::widget([
 ### Example dynamic action column template
 It is used for filtering template of Gridview Action Column
 ```php
-use hscstudio\mimin\components\Mimin;
+use davidxu\srbac\components\Srbac;
 echo GridView::widget([
     'dataProvider' => $dataProvider,
     'filterModel' => $searchModel,
@@ -166,7 +166,7 @@ echo GridView::widget([
         ...,
         [
           'class' => 'yii\grid\ActionColumn',
-          'template' => Mimin::filterActionColumn([
+          'template' => Srbac::filterActionColumn([
               'update','delete','download'
           ],$this->context->route),
           ...
@@ -184,20 +184,7 @@ In order to get started:
 - Install this in your local (read installation section)
 - Clone this repository.
 - Check [README.md](README.md).
-- Send [pull requests](https://github.com/hscstudio/yii2-mimin/pulls).
+- Send [pull requests](https://github.com/davidxu/yii2-srbac/pulls).
 
-Aside from contributing via pull requests you may [submit issues](https://github.com/hscstudio/yii2-mimin/issues).
+Aside from contributing via pull requests you may [submit issues](https://github.com/davidxu/yii2-srbac/issues).
 
-## Our Team
-
-- [Hafid Mukhlasin](http://www.hafidmukhlasin.com) - Project Leader / Indonesian Yii developer.
-
-We'd like to thank our [contributors](https://github.com/hscstudio/yii2-mimin/graphs/contributors) for improving
-this tools. Thank you!
-
-Jakarta - Indonesia
-
-## Buku Panduan
-
-Tutorial tentang dasar-dasar RBAC atau access controll di Yii 2 dan panduan yii2-mimin dibahas secara komprehensif di buku saya ini
-https://hscstudio.github.io/yii2-book-id
