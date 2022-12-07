@@ -16,19 +16,19 @@ The preferred way to install this extension is through [composer](http://getcomp
 Either run
 
 ```
-php composer.phar require --prefer-dist davidxu/yii2-srbac "~1.1.5"
+php composer.phar require --prefer-dist davidxu/yii2-srbac "^2.0"
 ```
 
 or add
 
 ```
-"davidxu/yii2-srbac": "~1.1.5"
+"davidxu/yii2-srbac": "^2.0"
 ```
 
 or add this for install last change
 
 ```
-"davidxu/yii2-srbac": "~1.*"
+"davidxu/yii2-srbac": "^2.0"
 ```
 
 to the require section of your `composer.json` file.
