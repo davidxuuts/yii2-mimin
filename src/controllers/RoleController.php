@@ -1,166 +1,187 @@
 <?php
+/*
+ * Copyright (c) 2023.
+ * @author David Xu <david.xu.uts@163.com>
+ * All rights reserved.
+ */
 
 namespace davidxu\srbac\controllers;
 
+use davidxu\base\helpers\ActionHelper;
+use davidxu\config\components\BaseController;
+use davidxu\base\enums\StatusEnum;
+use davidxu\config\helpers\ArrayHelper;
+use davidxu\srbac\components\Helper;
+use davidxu\srbac\models\Rule;
+use davidxu\srbac\models\Route;
+use Exception;
+use Throwable;
 use Yii;
-use davidxu\srbac\models\AuthItem;
-use davidxu\srbac\models\AuthItemSearch;
-use yii\web\Controller;
-use yii\web\NotFoundHttpException;
-use yii\filters\VerbFilter;
-use yii\filters\AccessControl;
+use davidxu\srbac\models\Item;
+use yii\base\ExitException;
+use yii\db\ActiveRecordInterface;
+use yii\db\StaleObjectException;
+use yii\rbac\Item as RbacItem;
+use yii\data\ActiveDataProvider;
+use yii\web\Response;
 
 /**
  * AuthItemController implements the CRUD actions for AuthItem model.
  */
-class RoleController extends Controller
+class RoleController extends BaseController
 {
-	public function behaviors()
-	{
-		return [
-			'access' => [
-				'class' => AccessControl::className(),
-				'rules' => [
-					[
-						'allow' => true,
-						'roles' => ['@'],
-					],
-				],
-			],
-			'verbs' => [
-				'class' => VerbFilter::className(),
-				'actions' => [
-					'delete' => ['post'],
-				],
-			],
-		];
+    public ActiveRecordInterface|string|null $modelClass = Item::class;
+
+    /**
+     * @return array
+     */
+    public function actions(): array
+    {
+        return [];
+    }
+
+	public function actionIndex(): string
+    {
+        $query = $this->modelClass::find()->where(['type' => RbacItem::TYPE_ROLE]);
+        $key = trim(Yii::$app->request->get('key', ''));
+        if ($key) {
+            $query->andFilterWhere([
+                'or',
+                ['like', 'name', $key],
+                ['like', 'description', $key],
+                ['like', 'rule_name', $key],
+            ]);
+        }
+        $dataProvider = new ActiveDataProvider([
+            'query' => $query,
+            'sort' => [
+                'defaultOrder' => [
+                    'updated_at' => SORT_DESC,
+                    'created_at' => SORT_DESC,
+                    'name' => SORT_ASC,
+                ],
+            ],
+        ]);
+        return $this->render('index', [
+            'dataProvider' => $dataProvider,
+        ]);
 	}
 
-	/**
-	 * Lists all AuthItem models.
-	 * @return mixed
-	 */
-	public function actionIndex()
-	{
-		$searchModel = new AuthItemSearch([
-			'type' => 1
-		]);
-		$dataProvider = $searchModel->search(Yii::$app->request->queryParams);
+    /**
+     * Displays a single AuthItem model.
+     * @return string
+     */
+	public function actionAuthorize(): string
+    {
+        /** @var Item $model */
+        $model = $this->findModel(Yii::$app->request->get('id'));
+        $query = Route::find()
+            ->groupBy(['type'])
+            ->distinct()
+            ->where(['status' => StatusEnum::ENABLED]);
+        $dataProvider = new ActiveDataProvider([
+            'query' => $query,
+            'sort' => [
+                'defaultOrder' => [
+                    'type' => SORT_ASC,
+                ],
+            ],
+        ]);
 
-		return $this->render('index', [
-			'searchModel' => $searchModel,
-			'dataProvider' => $dataProvider,
-		]);
-	}
-
-	/**
-	 * Displays a single AuthItem model.
-	 * @param string $id
-	 * @return mixed
-	 */
-	public function actionView($id)
-	{
-		$model = $this->findModel($id);
-
-		return $this->render('view', [
+        $auth = Yii::$app->authManager;
+        $permissions = $auth->getPermissionsByRole($model->name);
+		return $this->render('authorize', [
 			'model' => $model,
+            'dataProvider' => $dataProvider,
+            'permissions' => $permissions,
 		]);
 	}
 
-	/**
-	 * Creates a new AuthItem model.
-	 * If creation is successful, the browser will be redirected to the 'view' page.
-	 * @return mixed
-	 */
-	public function actionCreate()
-	{
-		$model = new AuthItem();
+    /**
+     * @throws ExitException
+     * @throws Exception
+     */
+    public function actionAjaxEdit()
+    {
+        $id = Yii::$app->request->get('id');
+        /** @var Item $model */
+        $model = $this->findModel($id);
+        $model->type = RbacItem::TYPE_ROLE;
 
-		if ($model->load(Yii::$app->request->post())) {
-			$auth = Yii::$app->authManager;
-			$admin = $auth->createRole($model->name);
-			$auth->add($admin);
-			$model->save();
-			return $this->redirect(['view', 'id' => $model->name]);
-		} else {
-			return $this->render('create', [
-				'model' => $model,
-			]);
-		}
-	}
+        $availableRules = ArrayHelper::map(
+            Rule::find()->select(['name'])->asArray()->all(),
+            'name', 'name'
+        );
 
-	/**
-	 * Updates an existing AuthItem model.
-	 * If update is successful, the browser will be redirected to the 'view' page.
-	 * @param string $id
-	 * @return mixed
-	 */
-	public function actionUpdate($id)
-	{
-		$model = $this->findModel($id);
+        ActionHelper::activeFormValidate($model);
+        if ($model->load(Yii::$app->request->post())) {
+            if (trim($model->rule_name) === '') {
+                $model->rule_name = null;
+            }
+            $auth = Yii::$app->authManager;
+            $role = $auth->createRole($model->name);
+            $role->description = $model->description;
+            $role->ruleName = $model->rule_name;
+            $role->createdAt = $model->created_at;
+            $role->updatedAt = $model->created_at;
+            $success = $model->isNewRecord ? $auth->add($role) : $auth->update($model->name, $role);
+            if ($success) {
+                Helper::invalidate();
+                return ActionHelper::message(Yii::t('srbac', 'Saved successfully'),
+                    $this->redirect(Yii::$app->request->referrer));
+            }
+            return ActionHelper::message(ActionHelper::getError($model),
+                    $this->redirect(Yii::$app->request->referrer),
+                    'error'
+                );
+        }
 
-		if ($model->load(Yii::$app->request->post())) {
-			$auth = Yii::$app->authManager;
-			$admin = $auth->createRole($model->name);
-			$auth->update($model->name, $admin);
-			$model->save();
-			return $this->redirect(['view', 'id' => $model->name]);
-		} else {
-			return $this->render('update', [
-				'model' => $model,
-			]);
-		}
-	}
+        return $this->renderAjax($this->action->id, [
+            'model' => $model,
+            'availableRules' => $availableRules,
+        ]);
+    }
 
-	/**
-	 * Deletes an existing AuthItem model.
-	 * If deletion is successful, the browser will be redirected to the 'index' page.
-	 * @param string $id
-	 * @return mixed
-	 */
-	public function actionDelete($id)
-	{
-		$model = $this->findModel($id);
+    /**
+     * @return mixed
+     * @throws StaleObjectException|Throwable
+     */
+	public function actionDelete(): mixed
+    {
+        /** @var Item $model */
+        $model = $this->findModel(Yii::$app->request->get('id'));
 		$auth = Yii::$app->authManager;
-		$admin = $auth->createRole($model->name);
-		$auth->remove($admin);
-
-		return $this->redirect(['index']);
+		$role = $auth->createRole($model->name);
+        if ($auth->remove($role) && $model->delete()) {
+            Helper::invalidate();
+            return ActionHelper::message(Yii::t('srbac', 'Deleted successfully'),
+                $this->redirect(Yii::$app->request->referrer));
+        }
+        return ActionHelper::message(ActionHelper::getError($model),
+                $this->redirect(Yii::$app->request->referrer), 'error');
 	}
 
-	/**
-	 * Finds the AuthItem model based on its primary key value.
-	 * If the model is not found, a 404 HTTP exception will be thrown.
-	 * @param string $id
-	 * @return AuthItem the loaded model
-	 * @throws NotFoundHttpException if the model cannot be found
-	 */
-	protected function findModel($id)
-	{
-		if (($model = AuthItem::findOne($id)) !== null) {
-			return $model;
-		} else {
-			throw new NotFoundHttpException('The requested page does not exist.');
-		}
-	}
-
-	public function actionPermission($roleName, $permissionName)
-	{
-		\Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+    /**
+     * @param string $role_name
+     * @param string $permission_name
+     * @return string[]
+     * @throws Exception
+     */
+    public function actionPermission(string $role_name, string $permission_name): array
+    {
+		Yii::$app->response->format = Response::FORMAT_JSON;
 		$auth = Yii::$app->authManager;
-		$roleExist = $auth->getRole($roleName);
+		$roleExist = $auth->getRole($role_name);
 		$msg = 'no exec';
 		if ($roleExist) {
-			$role = $auth->createRole($roleName);
-			$permissionExist = $auth->getPermission($permissionName);
-			if ($permissionExist) {
-				$permission = $auth->createPermission($permissionName);
-			} else {
-				$permission = $auth->createPermission($permissionName);
-				$auth->add($permission);
-			}
+			$role = $auth->createRole($role_name);
+			$permissionExist = $auth->getPermission($permission_name);
+            $permission = $auth->createPermission($permission_name);
+            if (!$permissionExist) {
+                $auth->add($permission);
+            }
 
-			if ($auth->hasChild($role, $permission)) {
+            if ($auth->hasChild($role, $permission)) {
 				$auth->removeChild($role, $permission);
 				//$auth->remove($permission);
 				$msg = 'permission removed';
@@ -169,7 +190,7 @@ class RoleController extends Controller
 				$msg = 'permission added';
 			}
 		}
-
+        Helper::invalidate();
 		return ['data' => $msg];
 	}
 }

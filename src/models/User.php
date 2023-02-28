@@ -1,50 +1,63 @@
 <?php
+/*
+ * Copyright (c) 2023.
+ * @author David Xu <david.xu.uts@163.com>
+ * All rights reserved.
+ */
 
 namespace davidxu\srbac\models;
 
+use davidxu\srbac\components\Configs;
 use Yii;
+use yii\base\Exception;
+use yii\base\InvalidConfigException;
 use yii\behaviors\TimestampBehavior;
+use yii\db\ActiveQuery;
+use yii\db\ActiveRecord;
 
 /**
  * This is the model class for table "user".
  *
- * @property integer $id
- * @property string $username
- * @property string $auth_key
- * @property string $password_hash
- * @property string $password_reset_token
- * @property string $email
- * @property integer $status
- * @property integer $created_at
- * @property integer $updated_at
+ * @property integer $id ID
+ * @property string $username Username
+ * @property string $auth_key Auth key
+ * @property string $password_hash Hashed password
+ * @property string $password_reset_token Password reset token
+ * @property string $email Email
+ * @property integer $status Status
+ * @property integer $created_at Created at
+ * @property integer $updated_at Updated at
  */
-class User extends \yii\db\ActiveRecord
+class User extends ActiveRecord
 {
-	public $new_password, $old_password, $repeat_password;
+	public ?string $new_password = null;
+    public ?string $old_password = null;
+    public ?string $repeat_password = null;
 
 	/**
 	 * @inheritdoc
-	 */
+     * @throws InvalidConfigException
+     */
 	public static function tableName()
 	{
-		return '{{%user}}';
+        return Configs::instance()->userTable;
 	}
 
 	/**
 	 * @inheritdoc
 	 */
-	public function behaviors()
-	{
+	public function behaviors(): array
+    {
 		return [
-			TimestampBehavior::className(),
+			TimestampBehavior::class,
 		];
 	}
 
 	/**
 	 * @inheritdoc
 	 */
-	public function rules()
-	{
+	public function rules(): array
+    {
 		return [
 			[['username', 'email'], 'required'],
 			[['username', 'email', 'password_hash'], 'string', 'max' => 255],
@@ -63,8 +76,11 @@ class User extends \yii\db\ActiveRecord
 		];
 	}
 
-	public function scenarios()
-	{
+    /**
+     * {@inheritDoc}
+     */
+	public function scenarios(): array
+    {
 		$scenarios = parent::scenarios();
 		$scenarios['password'] = ['old_password', 'new_password', 'repeat_password'];
 		return $scenarios;
@@ -73,8 +89,8 @@ class User extends \yii\db\ActiveRecord
 	/**
 	 * @inheritdoc
 	 */
-	public function attributeLabels()
-	{
+	public function attributeLabels(): array
+    {
 		return [
 			'id' => 'ID',
 			'username' => 'Username',
@@ -87,29 +103,32 @@ class User extends \yii\db\ActiveRecord
 	 * Validates password
 	 *
 	 * @param string $password password to validate
-	 * @return boolean if password provided is valid for current user
+	 * @return bool if password provided is valid for current user
 	 */
-	public function validatePassword($password)
-	{
+	public function validatePassword(string $password): bool
+    {
 		return Yii::$app->security->validatePassword($password, $this->password_hash);
 	}
 
-	/**
-	 * Generates password hash from password and sets it to the model
-	 *
-	 * @param string $password
-	 */
-	public function setPassword($password)
+    /**
+     * Generates password hash from password and sets it to the model
+     *
+     * @param string $password
+     * @throws Exception
+     */
+	public function setPassword(string $password)
 	{
 		$this->password_hash = Yii::$app->security->generatePasswordHash($password);
 	}
 
 	/**
-	 * @return \yii\db\ActiveQuery
+     * Gets query for [[Roles]]
+     *
+	 * @return ActiveQuery
 	 */
-	public function getRoles()
-	{
-		return $this->hasMany(AuthAssignment::className(), [
+	public function getRoles(): ActiveQuery
+    {
+		return $this->hasMany(Assignment::class, [
 			'user_id' => 'id',
 		]);
 	}

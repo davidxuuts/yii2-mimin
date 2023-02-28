@@ -1,7 +1,14 @@
 <?php
+/*
+ * Copyright (c) 2023.
+ * @author David Xu <david.xu.uts@163.com>
+ * All rights reserved.
+ */
 
 namespace davidxu\srbac\components;
 
+use yii\base\Action;
+use yii\base\InvalidConfigException;
 use yii\web\ForbiddenHttpException;
 use yii\base\Module;
 use Yii;
@@ -19,7 +26,7 @@ use yii\base\ActionFilter;
  *
  * ~~~
  * 'as access' => [
- *     'class' => 'app\components\AccessControl',
+ *     'class' => 'davidxu\srbac\components\AccessControl',
  *     'allowActions' => ['site/login', 'site/error']
  * ]
  * ~~~
@@ -33,39 +40,44 @@ use yii\base\ActionFilter;
 class AccessFilter extends ActionFilter
 {
 	/**
-	 * @var User User for check access.
+	 * @var User|string User for check access.
 	 */
-	private $_user = 'user';
+	private string|User $_user = 'user';
 
 	/**
 	 * @var array List of action that not need to check access.
 	 */
-	public $allowActions = [];
+	public array $allowActions = [];
 
-	/**
-	 * Get user
-	 * @return User
-	 */
-	public function getUser()
-	{
+    /**
+     * Get user instance
+     * @return User|string
+     * @throws InvalidConfigException
+     */
+	public function getUser(): User|string
+    {
 		if (!$this->_user instanceof User) {
-			$this->_user = Instance::ensure($this->_user, User::className());
+			$this->_user = Instance::ensure($this->_user, User::class);
 		}
 		return $this->_user;
 	}
 
 	/**
-	 * Set user
-	 * @param User|string $user
+	 * Set user instance
+	 * @param string|User $user
 	 */
-	public function setUser($user)
+	public function setUser(User|string $user)
 	{
 		$this->_user = $user;
 	}
 
-	/**
-	 * @inheritdoc
-	 */
+    /**
+     * @inheritdoc
+     *
+     * @param Action|string $action
+     * @return bool|void
+     * @throws ForbiddenHttpException|InvalidConfigException
+     */
 	public function beforeAction($action)
 	{
 		$actionId = $action->getUniqueId();
@@ -87,10 +99,10 @@ class AccessFilter extends ActionFilter
 	 * Denies the access of the user.
 	 * The default implementation will redirect the user to the login page if he is a guest;
 	 * if the user is already logged, a 403 HTTP exception will be thrown.
-	 * @param  yii\web\User $user the current user
-	 * @throws yii\web\ForbiddenHttpException if the user is already logged in.
+	 * @param User|string $user the current user
+	 * @throws ForbiddenHttpException if the user is already logged in.
 	 */
-	protected function denyAccess($user)
+	protected function denyAccess(User|string $user)
 	{
 		if ($user->getIsGuest()) {
 			$user->loginRequired();
@@ -100,17 +112,25 @@ class AccessFilter extends ActionFilter
 	}
 
 	/**
+     *
 	 * @inheritdoc
-	 */
-	protected function isActive($action)
-	{
+     * @param Action|string $action
+     * @return bool
+     * @throws InvalidConfigException
+     */
+	protected function isActive($action): bool
+    {
 		$uniqueId = $action->getUniqueId();
 		if ($uniqueId === Yii::$app->getErrorHandler()->errorAction) {
 			return false;
 		}
 
 		$user = $this->getUser();
-		if ($user->getIsGuest() && is_array($user->loginUrl) && isset($user->loginUrl[0]) && $uniqueId === trim($user->loginUrl[0], '/')) {
+		if ($user->getIsGuest()
+            && is_array($user->loginUrl)
+            && isset($user->loginUrl[0])
+            && $uniqueId === trim($user->loginUrl[0], '/')
+        ) {
 			return false;
 		}
 
@@ -118,7 +138,7 @@ class AccessFilter extends ActionFilter
 			// convert action uniqueId into an ID relative to the module
 			$mid = $this->owner->getUniqueId();
 			$id = $uniqueId;
-			if ($mid !== '' && strpos($id, $mid . '/') === 0) {
+			if ($mid !== '' && str_starts_with($id, $mid . '/')) {
 				$id = substr($id, strlen($mid) + 1);
 			}
 		} else {
@@ -126,9 +146,9 @@ class AccessFilter extends ActionFilter
 		}
 
 		foreach ($this->allowActions as $route) {
-			if (substr($route, -1) === '*') {
+			if (str_ends_with($route, '*')) {
 				$route = rtrim($route, "*");
-				if ($route === '' || strpos($id, $route) === 0) {
+				if ($route === '' || str_starts_with($id, $route)) {
 					return false;
 				}
 			} else {
@@ -138,7 +158,8 @@ class AccessFilter extends ActionFilter
 			}
 		}
 
-		if ($action->controller->hasMethod('allowAction') && in_array($action->id, $action->controller->allowAction())) {
+		if ($action->controller->hasMethod('allowAction')
+            && in_array($action->id, $action->controller->allowAction())) {
 			return false;
 		}
 

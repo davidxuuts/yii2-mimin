@@ -1,19 +1,29 @@
 <?php
+/*
+ * Copyright (c) 2023.
+ * @author David Xu <david.xu.uts@163.com>
+ * All rights reserved.
+ */
 
 use yii\db\Schema;
 use yii\db\Migration;
+use davidxu\srbac\components\Configs;
 
 class m130524_201442_init extends Migration
 {
-	public function up()
+    private function tableName()
+    {
+        return Configs::instance()->userTable;
+    }
+
+    public function up()
 	{
 		$tableOptions = null;
-		if ($this->db->driverName === 'mysql') {
-			// http://stackoverflow.com/questions/766809/whats-the-difference-between-utf8-general-ci-and-utf8-unicode-ci
-			$tableOptions = 'CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE=InnoDB';
+		if ($this->db->driverName === 'mysql' || strtolower($this->db->driverName) === 'mariadb') {
+            $tableOptions = 'CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci ENGINE=InnoDB';
 		}
 
-		$this->createTable('{{%user}}', [
+		$this->createTable($this->tableName(), [
 			'id' => $this->primaryKey(),
 			'username' => $this->string()->notNull()->unique(),
 			'auth_key' => $this->string(32)->notNull(),
@@ -29,6 +39,6 @@ class m130524_201442_init extends Migration
 
 	public function down()
 	{
-		$this->dropTable('{{%user}}');
+		$this->dropTable($this->tableName());
 	}
 }

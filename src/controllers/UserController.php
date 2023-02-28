@@ -1,201 +1,171 @@
 <?php
+/*
+ * Copyright (c) 2023.
+ * @author David Xu <david.xu.uts@163.com>
+ * All rights reserved.
+ */
 
 namespace davidxu\srbac\controllers;
 
+use davidxu\base\enums\StatusEnum;
+use davidxu\base\helpers\ActionHelper;
+use davidxu\config\components\BaseController;
+use davidxu\srbac\components\Helper;
 use Yii;
-use davidxu\srbac\models\User;
-use davidxu\srbac\models\AuthAssignment;
-use davidxu\srbac\models\AuthItem;
-use davidxu\srbac\models\UserSearch;
-use yii\web\Controller;
-use yii\web\NotFoundHttpException;
-use yii\filters\VerbFilter;
+use davidxu\srbac\models\forms\UserForm;
+use yii\base\Exception;
+use yii\base\ExitException;
+use yii\base\InvalidConfigException;
+use yii\data\ActiveDataProvider;
+use yii\db\ActiveRecordInterface;
 use yii\helpers\ArrayHelper;
-use yii\filters\AccessControl;
+use davidxu\srbac\models\Item;
+use yii\rbac\Item as RbacItem;
 
 /**
  * UserController implements the CRUD actions for User model.
  */
-class UserController extends Controller
+class UserController extends BaseController
 {
-	public function behaviors()
-	{
-		return [
-			'access' => [
-				'class' => AccessControl::className(),
-				'rules' => [
-					[
-						'allow' => true,
-						'roles' => ['@'],
-					],
-				],
-			],
-			'verbs' => [
-				'class' => VerbFilter::className(),
-				'actions' => [
-					'delete' => ['post'],
-				],
-			],
-		];
-	}
+    public string|ActiveRecordInterface|null $modelClass = '';
 
-	/**
+    public function init(): void
+    {
+        parent::init();
+        if ($this->modelClass === '') {
+            $this->modelClass = Yii::$app->getUser()->identityClass ? : Yii::$app->services->backendMemberService->modelClass;
+        }
+    }
+
+    /**
+     * @return array
+     */
+    public function actions(): array
+    {
+        return [];
+    }
+
+    /**
 	 * Lists all User models.
-	 * @return mixed
-	 */
-	public function actionIndex()
-	{
-		$searchModel = new UserSearch();
-		$dataProvider = $searchModel->search(Yii::$app->request->queryParams);
-
-		return $this->render('index', [
-			'searchModel' => $searchModel,
-			'dataProvider' => $dataProvider,
-		]);
+     * @return string
+     */
+	public function actionIndex(): string
+    {
+        $query = $this->modelClass::find();
+        // TODO auth rule needed
+        if (!($seeAll = true)) {
+            $query->where(['status' => StatusEnum::ENABLED]);
+        }
+        $key = trim(Yii::$app->request->get('key', ''));
+        if ($key) {
+            $query->andFilterWhere([
+                'or',
+                ['like', 'username', $key],
+                ['like', 'realname', $key],
+            ]);
+        }
+        $dataProvider = new ActiveDataProvider([
+            'query' => $query,
+            'sort' => [
+                'defaultOrder' => [
+                    'id' => SORT_ASC,
+                    'updated_at' => SORT_DESC,
+                ],
+            ],
+        ]);
+        return $this->render('index', [
+            'dataProvider' => $dataProvider,
+        ]);
 	}
 
-	/**
-	 * Displays a single User model.
-	 * @param integer $id
-	 * @return mixed
-	 */
-	public function actionView($id)
-	{
-		$model = $this->findModel($id);
-		$authAssignments = AuthAssignment::find()->where([
-			'user_id' => $model->id,
-		])->column();
+    /**
+     * @return mixed
+     * @throws InvalidConfigException|ExitException
+     */
+    public function actionAjaxEdit(): mixed
+    {
+        $id = Yii::$app->request->get('id');
+        $model = new UserForm(['id' => $id]);
+        $authItems = ArrayHelper::map(
+            Item::find()->select(['name'])->where([
+                'type' => RbacItem::TYPE_ROLE,
+            ])->asArray()->all(),
+            'name', 'name');
 
-		$authItems = ArrayHelper::map(
-			AuthItem::find()->where([
-				'type' => 1,
-			])->asArray()->all(),
-			'name', 'name');
+        $model->loadData();
+        ActionHelper::activeFormValidate($model);
+        if ($model->load(Yii::$app->request->post())) {
+            if ($model->save()) {
+                Helper::invalidate();
+                return ActionHelper::message(Yii::t('srbac', 'Saved successfully'),
+                    $this->redirect(Yii::$app->request->referrer));
+            }
+            return ActionHelper::message(ActionHelper::getError($model),
+                    $this->redirect(Yii::$app->request->referrer), 'error');
+        }
 
-		$authAssignment = new AuthAssignment([
-			'user_id' => $model->id,
-		]);
+        return $this->renderAjax('ajax-edit', [
+            'model' => $model,
+            'authItems' => $authItems,
+        ]);
+    }
 
-		if (Yii::$app->request->post()) {
-			$authAssignment->load(Yii::$app->request->post());
-			// delete all role
-			AuthAssignment::deleteAll(['user_id' => $model->id]);
-			if (is_array($authAssignment->item_name)) {
-				foreach ($authAssignment->item_name as $item) {
-					if (!in_array($item, $authAssignments)) {
-						$authAssignment2 = new AuthAssignment([
-							'user_id' => $model->id,
-						]);
-						$authAssignment2->item_name = $item;
-						$authAssignment2->created_at = time();
-						$authAssignment2->save();
+    /**
+     * @throws InvalidConfigException
+     */
+    public function actionDestroy()
+    {
+        $id = Yii::$app->request->get('id');
+        if (!($model = $this->modelClass::findOne($id))) {
+            return ActionHelper::message(
+                Yii::t('base', 'Data not found'),
+                $this->redirect(Yii::$app->request->referrer),
+                'error'
+            );
+        }
+        if (isset($model->status)) {
+            $model->status = StatusEnum::DELETE;
+        }
+        if ($model->save()) {
+            Helper::invalidate();
+            return ActionHelper::message(Yii::t('base', 'Deleted successfully'),
+                $this->redirect(Yii::$app->request->referrer));
+        }
+        return ActionHelper::message(ActionHelper::getError($model),
+                $this->redirect(Yii::$app->request->referrer), 'error');
+    }
 
-						$authAssignments = AuthAssignment::find()->where([
-							'user_id' => $model->id,
-						])->column();
-					}
-				}
-			}
-			Yii::$app->session->setFlash('success', 'Data tersimpan');
-		}
-		$authAssignment->item_name = $authAssignments;
-		return $this->render('view', [
-			'model' => $model,
-			'authAssignment' => $authAssignment,
-			'authItems' => $authItems,
-		]);
-	}
+    /**
+     * Action Destroy
+     *
+     * @param int $id
+     * @return mixed
+     * @throws InvalidConfigException
+     */
+    public function actionRestore(int $id): mixed
+    {
+        if (!($model = $this->modelClass::findOne($id))) {
+            return ActionHelper::message(
+                Yii::t('configtr', 'Data not found'),
+                $this->redirect(Yii::$app->request->referrer),
+                'error'
+            );
+        }
 
-	/**
-	 * Creates a new User model.
-	 * If creation is successful, the browser will be redirected to the 'view' page.
-	 * @return mixed
-	 */
-	public function actionCreate()
-	{
-		$model = new User();
+        if (isset($model->status)) {
+            $model->status = StatusEnum::ENABLED;
+        }
+        if ($model->save()) {
+            Helper::invalidate();
+            return ActionHelper::message(
+                Yii::t('srbac', 'Restored successfully'),
+                $this->redirect(Yii::$app->request->referrer));
+        }
 
-		if ($model->load(Yii::$app->request->post())) {
-			$model->setPassword('123456');
-			$model->status = $model->status==1?10:0;
-			if ($model->save()) {
-				Yii::$app->session->setFlash('success', 'User berhasil dibuat dengan password 123456');
-			} else {
-				Yii::$app->session->setFlash('error', 'User gagal dibuat');
-			}
-
-			return $this->redirect(['view', 'id' => $model->id]);
-		} else {
-			return $this->render('create', [
-				'model' => $model,
-			]);
-		}
-	}
-
-	/**
-	 * Updates an existing User model.
-	 * If update is successful, the browser will be redirected to the 'view' page.
-	 * @param integer $id
-	 * @return mixed
-	 */
-	public function actionUpdate($id)
-	{
-		$model = $this->findModel($id);
-
-		if ($model->load(Yii::$app->request->post()) && $model->save()) {
-			if (!empty($model->new_password)) {
-			    $model->setPassword($model->new_password);
-			}
-			$model->status = $model->status==1?10:0;
-			if ($model->save()) {
-			    Yii::$app->session->setFlash('success', 'User berhasil diupdate');
-			} else {
-			    Yii::$app->session->setFlash('error', 'User gagal diupdate');
-			}
-			return $this->redirect(['view', 'id' => $model->id]);
-		} else {
-			$model->status = $model->status==10?1:0;
-			return $this->render('update', [
-				'model' => $model,
-			]);
-		}
-	}
-
-	/**
-	 * Deletes an existing User model.
-	 * If deletion is successful, the browser will be redirected to the 'index' page.
-	 * @param integer $id
-	 * @return mixed
-	 */
-	public function actionDelete($id)
-	{
-		$model = $this->findModel($id);
-		$authAssignments = AuthAssignment::find()->where([
-			'user_id' => $model->id,
-		])->all();
-		foreach ($authAssignments as $authAssignment) {
-			$authAssignment->delete();
-		}
-
-		Yii::$app->session->setFlash('success', 'Delete success');
-		$model->delete();
-
-		return $this->redirect(['index']);
-	}
-
-	/**
-	 * Finds the User model based on its primary key value.
-	 * If the model is not found, a 404 HTTP exception will be thrown.
-	 * @param integer $id
-	 * @return User the loaded model
-	 * @throws NotFoundHttpException if the model cannot be found
-	 */
-	protected function findModel($id)
-	{
-		if (($model = User::findOne($id)) !== null) {
-			return $model;
-		} else {
-			throw new NotFoundHttpException('The requested page does not exist.');
-		}
-	}
+        return ActionHelper::message(
+            ActionHelper::getError($model),
+            $this->redirect(Yii::$app->request->referrer),
+            'error'
+        );
+    }
 }

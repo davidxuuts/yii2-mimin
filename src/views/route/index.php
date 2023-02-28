@@ -1,49 +1,69 @@
 <?php
+/*
+ * Copyright (c) 2023.
+ * @author David Xu <david.xu.uts@163.com>
+ * All rights reserved.
+ */
 
 use yii\helpers\Html;
 use yii\grid\GridView;
+use yii\grid\SerialColumn;
+use davidxu\config\grid\ActionColumn;
+use davidxu\base\enums\ModalSizeEnum;
 
 /* @var $this yii\web\View */
-/* @var $searchModel davidxu\srbac\models\RouteSearch */
 /* @var $dataProvider yii\data\ActiveDataProvider */
 
-$this->title = 'Routes';
+$this->title = Yii::t('srbac', 'Routes');
 $this->params['breadcrumbs'][] = $this->title;
 ?>
-<div class="route-index">
-
-	<h1><?= Html::encode($this->title) ?></h1>
-	<?php // echo $this->render('_search', ['model' => $searchModel]); ?>
-
-	<p>
-		<?= Html::a('Create Route', ['create'], ['class' => 'btn btn-success']) ?>
-		<?= Html::a('Generate Route', ['generate'], ['class' => 'btn btn-primary']) ?>
-	</p>
-
-	<?= GridView::widget([
-		'dataProvider' => $dataProvider,
-		'filterModel' => $searchModel,
-		'columns' => [
-			['class' => 'yii\grid\SerialColumn'],
-			'type',
-			'alias',
-			'name',
-			[
-				'attribute' => 'status',
-				'filter' => [0 => 'off', 1 => 'on'],
-				'format' => 'raw',
-				'options' => [
-					'width' => '80px',
-				],
-				'value' => function ($data) {
-					if ($data->status == 1)
-						return "<span class='label label-primary'>" . 'On' . "</span>";
-					else
-						return "<span class='label label-danger'>" . 'Off' . "</span>";
-				}
-			],
-			['class' => 'yii\grid\ActionColumn'],
-		],
-	]); ?>
-
+<div class="srbac-route-index card card-outline card-secondary">
+    <div class="card-header">
+        <h4 class="card-title"><?= Html::encode($this->title); ?> </h4>
+        <div class="card-tools">
+            <?= Html::a('<i class="fas fa-plus-circle"></i> '
+                . Yii::t('srbac', 'Create route'),
+                ['ajax-edit'],
+                [
+                    'class' => 'btn btn-xs btn-primary',
+                    'title' => Yii::t('srbac', 'Edit'),
+                    'aria-label' => Yii::t('srbac', 'Edit'),
+                    'data-toggle' => 'modal',
+                    'data-target' => '#modal',
+                    'data-modal-class' => ModalSizeEnum::SIZE_LARGE,
+                ]
+            ) ?>
+            <?= Html::a('<i class="fas fa-route"></i> '
+                . Yii::t('srbac', 'Generate routes'),
+                ['generate'],
+                ['class' => 'btn btn-xs btn-secondary']
+            ) ?>
+        </div>
+    </div>
+    <div class="card-body pt-3 pl-0 pr-0">
+        <div class="container">
+            <?= $this->render('../common/_search', [
+                'placeholder' => Yii::t('srbac', 'Search type/route/menu name')
+            ]) ?>
+            <?php try {
+                echo GridView::widget([
+                    'dataProvider' => $dataProvider,
+                    'tableOptions' => ['class' => 'table table-bordered'],
+                    'columns' => [
+                        ['class' => SerialColumn::class],
+                        'type',
+                        'name',
+                        'alias',
+                        [
+                            'class' => ActionColumn::class,
+                            'header' => Yii::t('app', 'Operate'),
+                            'template' => '{ajax-edit} {delete}',
+                        ],
+                    ],
+                ]);
+            } catch (Exception|Throwable $e) {
+                echo YII_ENV_PROD ? null : $e->getMessage();
+            } ?>
+        </div>
+    </div>
 </div>

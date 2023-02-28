@@ -42,7 +42,7 @@ Once the extension is installed, simply use it in your code by  :
 in config
 ```php
 'as access' => [
-     'class' => '\davidxu\srbac\components\AccessControl',
+     'class' => '\davidxu\srbac\components\AccessFilter',
 	 'allowActions' => [
 		// add wildcard allowed action here!
 		'site/*',
@@ -53,7 +53,7 @@ in config
 ...,
 'modules' => [
 	'srbac' => [
-		'class' => '\davidxu\srbac\Module',
+		'class' => '\davidxu\srbac\SrbacModule',
 	],
 	...
 ],

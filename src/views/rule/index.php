@@ -5,6 +5,7 @@
  * All rights reserved.
  */
 
+use davidxu\srbac\models\Rule;
 use yii\helpers\Html;
 use yii\grid\GridView;
 use yii\data\ActiveDataProvider;
@@ -18,15 +19,15 @@ use davidxu\config\grid\ActionColumn;
  * @var $dataProvider ActiveDataProvider;
  */
 
-$this->title = Yii::t('srbac', 'Roles');
+$this->title = Yii::t('srbac', 'Rules');
 $this->params['breadcrumbs'][] = $this->title;
 ?>
-<div class="srbac-auth-item-role-index card card-outline card-secondary">
+<div class="srbac-auth-rule-index card card-outline card-secondary">
     <div class="card-header">
         <h4 class="card-title"><?= Html::encode($this->title); ?> </h4>
         <div class="card-tools">
             <?= Html::a('<i class="fas fa-plus-circle"></i> '
-                . Yii::t('srbac', 'Create role'),
+                . Yii::t('srbac', 'Create rule'),
                 ['ajax-edit'],
                 [
                     'class' => 'btn btn-xs btn-primary',
@@ -42,7 +43,7 @@ $this->params['breadcrumbs'][] = $this->title;
     <div class="card-body pt-3 pl-0 pr-0">
         <div class="container">
             <?= $this->render('../common/_search', [
-                'placeholder' => Yii::t('srbac', 'Search name/description/rule name')
+                'placeholder' => Yii::t('srbac', 'Search name')
             ]) ?>
             <?php try {
                 echo GridView::widget([
@@ -51,21 +52,22 @@ $this->params['breadcrumbs'][] = $this->title;
                     'columns' => [
                         ['class' => SerialColumn::class],
                         'name',
-                        'rule_name',
+                        [
+                            'attribute' => 'class_name',
+                            'value' => function($model) {
+                                /** @var Rule $model */
+                                return $model->data && unserialize($model->data) ? get_class(unserialize($model->data)) : null;
+                            }
+                        ],
                         'updated_at:date',
                         [
                             'class' => ActionColumn::class,
                             'header' => Yii::t('app', 'Operate'),
-                            'template' => '{authorize} {ajax-edit} {delete}',
-                            'buttons' => [
-                                'authorize' => function ($url, $model, $key) {
-                                    return Html::a('<i class="fas fa-shield-alt"></i>', $url);
-                                }
-                            ],
+                            'template' => '{ajax-edit} {delete}',
                         ],
                     ],
                 ]);
-            } catch (Exception|Throwable $e) {
+            } catch (Exception|\Throwable $e) {
                 echo YII_ENV_PROD ? null : $e->getMessage();
             } ?>
         </div>

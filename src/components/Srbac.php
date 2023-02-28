@@ -1,20 +1,28 @@
 <?php
+/*
+ * Copyright (c) 2023.
+ * @author David Xu <david.xu.uts@163.com>
+ * All rights reserved.
+ */
 
 namespace davidxu\srbac\components;
 
+use Exception;
 use Yii;
+use yii\base\BaseObject;
 use yii\helpers\ArrayHelper;
-use davidxu\srbac\models\AuthItem;
+use davidxu\srbac\models\Item;
+use yii\rbac\Item as RbacItem;
 
 /**
  * @author Hafid Mukhlasin <hafidmukhlasin@gmail.com>
  * @author David Xu <david.xu.uts@163.com>
  * @since 1.0
  */
-Class Srbac extends \yii\base\BaseObject
+Class Srbac extends BaseObject
 {
 
-    private static $_cachePathCheck = [];
+    private static array $_cachePathCheck = [];
 
 	/**
 	 * Method CheckRoute is used for checking if route right to access
@@ -23,22 +31,22 @@ Class Srbac extends \yii\base\BaseObject
 	 *     echo Html::a('Create Foo', ['create'], ['class' => 'btn btn-success']);
 	 * }
 	 *
-	 * @param $route
+	 * @param string $route
 	 * @param bool $strict
 	 * @return bool
 	 */
-	public static function checkRoute($route, $strict = false)
-	{
+	public static function checkRoute(string $route, bool $strict = false): bool
+    {
 		$user = Yii::$app->user;
-		$permission = (substr($route, 0, 1) == '/') ? $route : '/' . $route;
-		$routePaths = explode('/',$permission);
+		$permission = (str_starts_with($route, '/')) ? $route : '/' . $route;
+		$routePaths = explode('/', $permission);
 		$currentPath = '';
-		foreach ($routePaths as $path){
-            $currentPath = empty($currentPath) ? '/' : $currentPath.$path.'/';
-            if(isset(static::$_cachePathCheck[$currentPath]) && static::$_cachePathCheck[$currentPath]){
+		foreach ($routePaths as $path) {
+            $currentPath = empty($currentPath) ? '/' : $currentPath . $path . '/';
+            if(isset(static::$_cachePathCheck[$currentPath]) && static::$_cachePathCheck[$currentPath]) {
                 return true;
             }
-            $check = $user->can($currentPath) || $user->can($currentPath.'*');
+            $check = $user->can($currentPath) || $user->can($currentPath . '*');
             static::$_cachePathCheck[$currentPath] = $check;
             if($check){
                 return true;
@@ -51,8 +59,13 @@ Class Srbac extends \yii\base\BaseObject
 		if (!$strict) {
 			$pos = (strrpos($permission, '/'));
 			$parent = substr($permission, 0, $pos);
-			$authItems = AuthItem::find()->where('name LIKE :param AND type = 2')->addParams([':param' => $parent.'/*'])->all();
+			$authItems = Item::find()->where('name LIKE :param AND type = :type')
+                ->addParams([
+                    ':param' => $parent . '/*',
+                    ':type' => RbacItem::TYPE_PERMISSION
+                ])->all();
 			foreach ($authItems as $authItem) {
+                /** @var Item $authItem */
 				$permission = $authItem->name;
 				if ($user->can($permission)) {
 					return true;
@@ -60,12 +73,13 @@ Class Srbac extends \yii\base\BaseObject
 			}
 		}
 
-		$allowActions = Yii::$app->allowActions;
+		$allowActions = Yii::$app->allowActions ?? null;
+
 		foreach ($allowActions as $action) {
-			$action = (substr($action, 0, 1) == '/') ? $action : '/' . $action;
+			$action = (str_starts_with($action, '/')) ? $action : '/' . $action;
 			if ($action === '*' or $action === '*/*') {
 				return true;
-			} else if (substr($action, -1) === '*') {
+			} else if (str_ends_with($action, '*')) {
 				$length = strlen($action) - 1;
 				return (substr($action, 0, $length) == substr($route, 0, $length));
 			} else {
@@ -75,34 +89,35 @@ Class Srbac extends \yii\base\BaseObject
 		return false;
 	}
 
-	/**
-	 * Method FilterMenu is used for filtering right access menu
-	 *
-	 * $menuItems = [
-	 *     ['label' => 'Home', 'url' => ['/site/index']],
-	 *     ['label' => 'About', 'url' => ['/site/about']],
-	 * ];
-	 *
-	 * if (!Yii::$app->user->isGuest){
-	 *     $menuItems[] = ['label' => 'App', 'items' => [
-	 *         ['label' => 'Category', 'url' => ['/category/index']],
-	 *         ['label' => 'Product', 'url' => ['/product/index']],
-	 * 	   ]];
-	 * }
-	 *
-	 * $menuItems = Srbac::filterMenu($menuItems);
-	 *
-	 * echo Nav::widget([
-	 *     'options' => ['class' => 'navbar-nav navbar-right'],
-	 *     'items' => $menuItems,
-	 * ]);
-	 *
-	 * @param $menus
-	 * @param bool $strict
-	 * @return array
-	 */
-	public static function filterMenu($menus, $strict = false)
-	{
+    /**
+     * Method FilterMenu is used for filtering right access menu
+     *
+     * $menuItems = [
+     *     ['label' => 'Home', 'url' => ['/site/index']],
+     *     ['label' => 'About', 'url' => ['/site/about']],
+     * ];
+     *
+     * if (!Yii::$app->user->isGuest){
+     *     $menuItems[] = ['label' => 'App', 'items' => [
+     *         ['label' => 'Category', 'url' => ['/category/index']],
+     *         ['label' => 'Product', 'url' => ['/product/index']],
+     *       ]];
+     * }
+     *
+     * $menuItems = Srbac::filterMenu($menuItems);
+     *
+     * echo Nav::widget([
+     *     'options' => ['class' => 'navbar-nav navbar-right'],
+     *     'items' => $menuItems,
+     * ]);
+     *
+     * @param array|null $menus
+     * @param bool $strict
+     * @return array
+     * @throws Exception
+     */
+	public static function filterMenu(?array $menus, bool $strict = false): array
+    {
 		$allowedRoutes = [];
 		$hr = 0;
 		foreach ($menus as $menu) {
@@ -116,8 +131,7 @@ Class Srbac extends \yii\base\BaseObject
 						$allowed = self::checkRoute($permission, $strict);
 						if ($allowed) {
 							$allowedSubRoutes[] = $item;
-							continue;
-						}
+                        }
 					} else {
 						$allowedSubRoutes[] = $item;
 						$hr++;
@@ -126,8 +140,7 @@ Class Srbac extends \yii\base\BaseObject
 				if (count($allowedSubRoutes) > 0) {
 					$menu['items'] = $allowedSubRoutes;
 					$allowedRoutes[] = $menu;
-					continue;
-				}
+                }
 			} else {
 				$urls = ArrayHelper::getValue($menu, 'url');
 				if (is_array($urls)) {
@@ -135,8 +148,7 @@ Class Srbac extends \yii\base\BaseObject
 					$allowed = self::checkRoute($permission, $strict);
 					if ($allowed) {
 						$allowedRoutes[] = $menu;
-						continue;
-					}
+                    }
 				} else {
 					$allowedRoutes[] = $menu;
 					$hr++;
@@ -169,29 +181,23 @@ Class Srbac extends \yii\base\BaseObject
 	 * If button name different with route name.
 	 * But for best practice, it should same
 	 *
-	 * @param $actions
-	 * @param $currentRoute
+	 * @param array|null $actions
+	 * @param string $currentRoute
 	 * @return string
 	 */
-	public static function filterActionColumn($actions, $currentRoute)
-	{
+	public static function filterActionColumn(?array $actions, string $currentRoute): string
+    {
 		$template = '';
 		$pos = (strrpos($currentRoute, '/'));
 		$parent = substr($currentRoute, 0, $pos);
 		foreach ($actions as $key => $value) {
-			if (is_integer($key)) {
-				$action = $value;
-				$permission = $parent . '/' . $action;
-			} else {
-				$action = $key;
-				$permission = $parent . '/' . $action;
-			}
-			$button = "{" . $value . "} ";
+            $action = is_integer($key) ? $value : $key;
+            $permission = $parent . '/' . $action;
+            $button = "{" . $value . "} ";
 			$allowed = self::checkRoute($permission, true);
 			if ($allowed) {
 				$template .= $button;
-				continue;
-			} else {
+            } else {
 				$allowed = self::checkRoute($parent . '/' . '*', true);
 				if ($allowed) {
 					$template .= $button;
@@ -200,5 +206,4 @@ Class Srbac extends \yii\base\BaseObject
 		}
 		return trim($template);
 	}
-
 }

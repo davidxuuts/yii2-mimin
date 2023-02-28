@@ -1,6 +1,6 @@
 {
     "name": "davidxu/yii2-srbac",
-    "description": "Simple RBAC Manager",
+    "description": "Simple RBAC Manager with authManager is DbManager",
     "type": "yii2-extension",
     "keywords": ["yii2","extension"],
     "license": "MIT",
@@ -14,8 +14,10 @@
         }
     ],
     "require": {
+        "php": ">=8.0",
         "yiisoft/yii2": "*",
-		"kartik-v/yii2-widgets": "*"
+        "davidxu/yii2-admin-config": ">=1.0.6",
+        "kartik-v/yii2-widget-select2": "v2.2.4"
     },
     "autoload": {
         "psr-4": {
