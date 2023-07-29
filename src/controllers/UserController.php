@@ -13,7 +13,6 @@ use davidxu\config\components\BaseController;
 use davidxu\srbac\components\Helper;
 use Yii;
 use davidxu\srbac\models\forms\UserForm;
-use yii\base\Exception;
 use yii\base\ExitException;
 use yii\base\InvalidConfigException;
 use yii\data\ActiveDataProvider;
@@ -33,7 +32,12 @@ class UserController extends BaseController
     {
         parent::init();
         if ($this->modelClass === '') {
-            $this->modelClass = Yii::$app->getUser()->identityClass ? : Yii::$app->services->backendMemberService->modelClass;
+            $this->modelClass = Yii::$app->getUser()->identityClass;
+        }
+        if (!$this->modelClass) {
+            throw new InvalidConfigException(Yii::t('base', 'Invalid configuration: {attribute}', [
+                'attribute' => 'modelClass'
+            ]));
         }
     }
 
@@ -167,5 +171,12 @@ class UserController extends BaseController
             $this->redirect(Yii::$app->request->referrer),
             'error'
         );
+    }
+
+    protected function getRolesByUserId(int $id, string $type = 'array')
+    {
+        if (Yii::$app->components) {
+
+        }
     }
 }

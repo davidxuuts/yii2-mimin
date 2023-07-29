@@ -20,6 +20,7 @@ use davidxu\config\grid\ActionColumn;
  */
 
 $this->title = Yii::t('srbac', 'Rules');
+$this->params['breadcrumbs'][] = Yii::t('srbac', 'Admin');
 $this->params['breadcrumbs'][] = $this->title;
 ?>
 <div class="srbac-auth-rule-index card card-outline card-secondary">

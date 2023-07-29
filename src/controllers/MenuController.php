@@ -10,6 +10,7 @@ namespace davidxu\srbac\controllers;
 use davidxu\base\helpers\ActionHelper;
 use davidxu\config\components\BaseController;
 use davidxu\config\helpers\ResponseHelper;
+use davidxu\srbac\components\Configs;
 use davidxu\srbac\components\Helper;
 use davidxu\srbac\models\Menu;
 use davidxu\srbac\models\MenuCate;
@@ -59,11 +60,16 @@ class MenuController extends BaseController
         $id = Yii::$app->request->get('id', 0);
         /** @var Menu $model */
         $model = $this->findModel($id);
+        if (Configs::useMenuCate()) {
+            $model->scenario = $this->modelClass::SCENARIO_USE_MENU_CATE;
+        }
         if ($model->isNewRecord && ($parent_id = Yii::$app->request->get('parent_id')) > 0) {
             $model->parent_id = $parent_id;
             /** @var Menu $modelParent */
             $modelParent = $this->findModel($parent_id);
-            $model->cate_id = $modelParent->cate_id;
+            if ($model->scenario === $this->modelClass::SCENARIO_USE_MENU_CATE) {
+                $model->cate_id = $modelParent->cate_id;
+            }
         }
         ActionHelper::activeFormValidate($model);
         if ($model->load(Yii::$app->request->post())) {
@@ -147,10 +153,13 @@ class MenuController extends BaseController
     }
 
     /**
-     * @return array
+     * @return array|null
      */
-    protected function getCateDropDown(): array
+    protected function getCateDropDown(): ?array
     {
+        if (!Configs::useMenuCate()) {
+            return null;
+        }
         $list = MenuCate::find()
             ->select(['id', 'title'])
             ->orderBy('order asc, id asc')

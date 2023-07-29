@@ -14,10 +14,13 @@ use yii\grid\SerialColumn;
 use davidxu\config\grid\ActionColumn;
 use davidxu\base\enums\StatusEnum;
 
-/* @var $this View */
-/* @var $dataProvider ActiveDataProvider */
+/**
+ * @var $this View
+ * @var $dataProvider ActiveDataProvider
+ */
 
 $this->title = Yii::t('srbac', 'Users');
+$this->params['breadcrumbs'][] = Yii::t('srbac', 'Admin');
 $this->params['breadcrumbs'][] = $this->title;
 ?>
 <div class="srbac-user-index card card-outline card-secondary">
@@ -56,8 +59,14 @@ $this->params['breadcrumbs'][] = $this->title;
                             'label' => Yii::t('srbac', 'Roles'),
                             'format' => 'raw',
                             'value' => function ($model) {
+                                $roles = [];
+                                $hasMemberServices = isset(Yii::$app->services) && isset(Yii::$app->services->backendMemberService);
+                                if ($hasMemberServices) {
+                                    $roles = Yii::$app->services->backendMemberService->getRoles($model->id);
+                                }
 //                                return implode(', ', $model->rolesName);
-                                return implode(', ', Yii::$app->services->backendMemberService->getRoles($model->id));
+                                return implode(', ', $roles);
+//                                return implode(', ', Yii::$app->services->backendMemberService->getRoles($model->id));
                             }
                         ],
                         [

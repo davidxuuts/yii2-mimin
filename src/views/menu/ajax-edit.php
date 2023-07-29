@@ -11,13 +11,13 @@ use yii\helpers\Url;
 use yii\web\View;
 use yii\helpers\Html;
 use davidxu\srbac\models\Menu;
-use kartik\widgets\Select2;
+use kartik\select2\Select2;
 use yii\web\JsExpression;
 
 /* @var $this View */
 /* @var $model Menu */
 /* @var $form ActiveForm */
-/* @var $cateDropDownList array */
+/* @var $cateDropDownList ?array */
 
 try {
 $form = ActiveForm::begin([
@@ -43,7 +43,7 @@ $form = ActiveForm::begin([
 </div>
 <div class="modal-body">
     <?= $form->field($model, 'name')->textInput(['maxlength' => true]) ?>
-    <?php if (!($model->parent_id > 0)) {
+    <?php if (\davidxu\srbac\components\Configs::useMenuCate() && !($model->parent_id > 0)) {
         echo $form->field($model, 'cate_id')->dropDownList(
             $cateDropDownList,
             ['prompt' => Yii::t('srbac', '-- Please select --'), 'type' => 'number']

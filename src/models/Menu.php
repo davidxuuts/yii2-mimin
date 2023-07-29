@@ -34,6 +34,7 @@ use yii\db\ActiveRecord;
  */
 class Menu extends ActiveRecord
 {
+    const SCENARIO_USE_MENU_CATE =  'SCENARIO_USE_MENU_CATE';
     /**
      * @inheritdoc
      * @throws Exception
@@ -49,7 +50,8 @@ class Menu extends ActiveRecord
     public function rules(): array
     {
         return [
-            [['cate_id', 'order', 'parent_id'], 'integer'],
+            [['order', 'parent_id'], 'integer'],
+            [['cate_id'], 'integer', 'on' => self::SCENARIO_USE_MENU_CATE],
             [['name', 'route'], 'required'],
             [['data'], 'string'],
             [['name'], 'string', 'max' => 128],
@@ -57,7 +59,7 @@ class Menu extends ActiveRecord
             [
                 ['cate_id'], 'exist', 'skipOnError' => true,
                 'targetClass' => MenuCate::class,
-                'targetAttribute' => ['cate_id' => 'id']
+                'targetAttribute' => ['cate_id' => 'id'], 'on' => self::SCENARIO_USE_MENU_CATE
             ],
             [
                 ['route'], 'exist', 'skipOnError' => true,
@@ -91,11 +93,14 @@ class Menu extends ActiveRecord
     /**
      * Gets query for [[Cate]].
      *
-     * @return ActiveQuery
+     * @return ActiveQuery|null
      */
-    public function getCate(): ActiveQuery
+    public function getCate(): ?ActiveQuery
     {
-        return $this->hasOne(MenuCate::class, ['id' => 'cate_id']);
+        if (Configs::useMenuCate()) {
+            return $this->hasOne(MenuCate::class, ['id' => 'cate_id']);
+        }
+        return null;
     }
 
     /**

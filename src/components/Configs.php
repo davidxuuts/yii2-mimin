@@ -72,6 +72,11 @@ class Configs extends BaseObject
 {
     const CACHE_TAG = 'davidxu.srbac';
 
+    public bool $useMenuCate = false;
+    public bool $noCommonRouteGenerated = true;
+    public array $exceptTypes = [];
+    public array $exceptRoutes = [];
+
     /**
      * @var string Srbac config params
      */
@@ -110,7 +115,7 @@ class Configs extends BaseObject
     /**
      * @var string Route table name.
      */
-    public string $routeTable = '{{%route}}';
+    public string $routeTable = '{{%auth_route}}';
 
     /**
      * @var string User table name.
@@ -262,6 +267,42 @@ class Configs extends BaseObject
     public static function authAssignmentTable(): string
     {
         return static::instance()->authAssignmentTable;
+    }
+
+    /**
+     * @return bool
+     * @throws InvalidConfigException
+     */
+    public static function useMenuCate(): bool
+    {
+        return static::instance()->useMenuCate;
+    }
+
+    /**
+     * @return bool
+     * @throws InvalidConfigException
+     */
+    public static function noCommonRouteGenerated(): bool
+    {
+        return static::instance()->noCommonRouteGenerated;
+    }
+
+    /**
+     * @return array
+     * @throws InvalidConfigException
+     */
+    public static function exceptTypes(): array
+    {
+        return static::instance()->exceptTypes;
+    }
+
+    /**
+     * @return array
+     * @throws InvalidConfigException
+     */
+    public static function exceptRoutes(): array
+    {
+        return static::instance()->exceptRoutes;
     }
 
     /**

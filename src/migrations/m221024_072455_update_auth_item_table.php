@@ -32,6 +32,7 @@ class m221024_072455_update_auth_item_table extends Migration
         $this->dropPrimaryKey('name', $this->tableName());
         $this->execute('ALTER TABLE' . $this->tableName() . ' ' . $tableOptions);
         $this->addColumn($this->tableName(),'id', $this->primaryKey() . ' FIRST');
+        $this->createIndex('UNQ_AuthItem_Menu', $this->tableName(), 'name', true);
         $this->execute('SET foreign_key_checks = 1');
 	}
 
@@ -42,6 +43,7 @@ class m221024_072455_update_auth_item_table extends Migration
 	{
         $this->execute('SET foreign_key_checks = 0');
         $this->dropColumn($this->tableName(), 'id');
+        $this->dropIndex('UNQ_AuthItem_Menu', $this->tableName());
         $this->addPrimaryKey('name', $this->tableName(), 'name');
         $this->execute('SET foreign_key_checks = 1');
 	}

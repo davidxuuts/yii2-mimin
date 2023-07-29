@@ -15,6 +15,7 @@ use davidxu\base\enums\ModalSizeEnum;
 /* @var $dataProvider yii\data\ActiveDataProvider */
 
 $this->title = Yii::t('srbac', 'Routes');
+$this->params['breadcrumbs'][] = Yii::t('srbac', 'Admin');
 $this->params['breadcrumbs'][] = $this->title;
 ?>
 <div class="srbac-route-index card card-outline card-secondary">

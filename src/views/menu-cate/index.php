@@ -18,6 +18,7 @@ use yii\data\ActiveDataProvider;
 /* @var ActiveDataProvider $dataProvider */
 
 $this->title = Yii::t('srbac', 'Menu category');
+$this->params['breadcrumbs'][] = Yii::t('srbac', 'Admin');
 $this->params['breadcrumbs'][] = $this->title;
 ?>
 <div class="admin-menu-cate-index card card-outline card-secondary">
@@ -45,6 +46,7 @@ $this->params['breadcrumbs'][] = $this->title;
             <?php try {
                 echo GridView::widget([
                     'dataProvider' => $dataProvider,
+                    'tableOptions' => ['class' => 'table table-striped table-bordered table-sm'],
                     'columns' => [
                         ['class' => 'yii\grid\SerialColumn'],
                         'app_id',

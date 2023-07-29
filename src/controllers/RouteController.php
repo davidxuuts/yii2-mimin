@@ -123,12 +123,33 @@ class RouteController extends BaseController
         $records = [];
         foreach ($routes as $route) {
             $pos = (strrpos($route, '/'));
-            $records[] = [
-                $route,
-                substr($route, 1, $pos - 1),
-                substr($route, $pos + 1, 64),
-                StatusEnum::ENABLED
-            ];
+            $type = substr($route, 1, $pos - 1);
+            $alias = substr($route, $pos + 1, 64);
+            if (Configs::noCommonRouteGenerated()) {
+                if ($alias !== '*') {
+                    $records[] = [
+                        $route,
+                        $type,
+                        $alias,
+                        StatusEnum::ENABLED
+                    ];
+                }
+            } else {
+                if ((!in_array($route, Configs::exceptRoutes())) || !in_array($type, Configs::exceptTypes())) {
+                    $records[] = [
+                        $route,
+                        $type,
+                        $alias,
+                        StatusEnum::ENABLED
+                    ];
+                }
+            }
+//            $records[] = [
+//                $route,
+//                $type,
+//                $alias,
+//                StatusEnum::ENABLED
+//            ];
         }
         Yii::$app->db->createCommand()
             ->batchInsert($modelClass::tableName(), ['name', 'type', 'alias', 'status'], $records)

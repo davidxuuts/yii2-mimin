@@ -32,11 +32,17 @@ class Helper
     /**
      * Use to get menu category.
      * @param string $appid
-     * @return array
+     * @return array|null
      * @throws InvalidConfigException
      */
-    public static function getMenuCate(string $appid): array
+    public static function getMenuCate(string $appid): ?array
     {
+//        if (class_exists(MenuCate::class) || !Yii::$app->db->getTableSchema(MenuCate::tableName())) {
+//            return null;
+//        }
+        if (!Configs::useMenuCate()) {
+            return null;
+        }
         if ($cache = Configs::cache()) {
             $dependency = new TagDependency(['tags' => Configs::CACHE_TAG]);
             return $cache->getOrSet([Yii::$app->id, __METHOD__, MenuCate::tableName()], function () use ($appid) {

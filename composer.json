@@ -17,7 +17,8 @@
         "php": ">=8.0",
         "yiisoft/yii2": "*",
         "davidxu/yii2-admin-config": ">=1.0.6",
-        "kartik-v/yii2-widget-select2": "v2.2.4"
+        "davidxu/yii2-treegrid": "^1.0.2",
+        "kartik-v/yii2-widget-select2": "^v2.2.4"
     },
     "autoload": {
         "psr-4": {

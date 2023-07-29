@@ -11,7 +11,7 @@ use yii\helpers\Url;
 use yii\web\View;
 use yii\helpers\Html;
 use davidxu\srbac\models\forms\UserForm;
-use kartik\widgets\Select2;
+use kartik\select2\Select2;
 
 
 /* @var $this View */
@@ -29,7 +29,7 @@ $form = ActiveForm::begin([
     'options' => [
         'class' => 'form-horizontal',
     ],
-    'validationUrl' => Url::to(['ajax-edit', 'id' => $model->primaryKey]),
+    'validationUrl' => Url::to(['ajax-edit', 'id' => $model->id]),
     'fieldConfig' => [
         'options' => ['class' => 'form-group row'],
         'template' => "<div class='col-sm-2 text-right'>{label}</div>"

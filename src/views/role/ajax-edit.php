@@ -5,7 +5,7 @@
  * All rights reserved.
  */
 
-use kartik\widgets\Select2;
+use kartik\select2\Select2;
 use yii\base\InvalidConfigException;
 use yii\bootstrap4\ActiveForm;
 use yii\helpers\Url;

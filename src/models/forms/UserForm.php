@@ -25,7 +25,7 @@ class UserForm extends Model
 
     public ?string $username = null;
 
-    public ?array $roles = null;
+    public array $roles = [];
 
     public bool $isNewUser = false;
 
@@ -66,12 +66,32 @@ class UserForm extends Model
      */
     public function loadData(): void
     {
-        if ($this->_user = Yii::$app->services->backendMemberService->findById($this->id)) {
-            $this->username = $this->_user->username;
-            $this->roles = Yii::$app->services->backendMemberService->getRoles($this->id);
-        } else {
-            $this->_user = new Yii::$app->services->backendMemberService->modelClass;
+        $hasMemberServices = isset(Yii::$app->services) && isset(Yii::$app->services->backendMemberServices);
+        if (!$this->id) {
             $this->isNewUser = true;
+            if ($hasMemberServices) {
+                $this->_user = new Yii::$app->services->backendMemberService->modelClass;
+            } else {
+                $this->_user = new Yii::$app->user->identityClass;
+            }
+        } else {
+            if ($hasMemberServices) {
+                if ($this->_user = Yii::$app->services->backendMemberService->findById($this->id)) {
+                    $this->username = $this->_user->username;
+                    $this->roles = Yii::$app->services->backendMemberService->getRoles($this->id);
+                } else {
+                    $this->_user = new Yii::$app->services->backendMemberService->modelClass;
+                    $this->isNewUser = true;
+                }
+            } else {
+                if ($this->_user = Yii::$app->user->identity) {
+                    $this->username = $this->_user->username;
+                    $this->roles = $this->getRoles();
+                } else {
+                    $this->_user = new Yii::$app->user->identityClass;
+                    $this->isNewUser = true;
+                }
+            }
         }
     }
 
@@ -81,7 +101,12 @@ class UserForm extends Model
      */
     public function isUnique(): void
     {
-        $member = Yii::$app->services->backendMemberService->modelClass::findOne(['username' => $this->username]);
+        if (isset(Yii::$app->services) && isset(Yii::$app->services->backendMemberService)) {
+            $member = Yii::$app->services->backendMemberService->modelClass::findOne(['username' => $this->username]);
+        } else {
+            $modelClass = Yii::$app->user->identityClass;
+            $member = $modelClass::findByUsername($this->username);
+        }
         if ($member && $member->id !== (int)$this->id) {
             $this->addError('username', Yii::t('app', 'Username has been token'));
         }
@@ -134,6 +159,29 @@ class UserForm extends Model
         } catch (Exception) {
             $transaction->rollBack();
             return false;
+        }
+    }
+
+    /**
+     * @param string $type
+     * @return array|ActiveRecord[]
+     */
+    protected function getRoles(string $type = 'array'): array
+    {
+        $roles = Assignment::find()->where(['user_id' => $this->id])->all();
+        if (!$roles) {
+            $roles = [];
+        }
+        if ($type === 'array') {
+            $items = [];
+            if ($roles) {
+                foreach ($roles as $role) {
+                    $items[] = $role->item_name;
+                }
+            }
+            return $items;
+        } else {
+            return $roles;
         }
     }
 }
