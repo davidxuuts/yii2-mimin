@@ -40,7 +40,15 @@ class RouteController extends BaseController
      */
     public function actions(): array
     {
-        return [];
+        $actions = parent::actions();
+        unset(
+            $actions['index'],
+            $actions['edit'],
+            $actions['ajax-edit'],
+            $actions['destroy'],
+            $actions['sort-order'],
+        );
+        return $actions;
     }
 
     /**
