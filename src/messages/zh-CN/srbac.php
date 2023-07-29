@@ -35,6 +35,8 @@ return [
     'Class name' => '类名',
     'Admin' => '认证授权',
     'Assignments' => '分配',
+    'Realname' => '真实姓名',
+    'Operate' => '操作',
     'Add' => '新增',
     'Users' => '用户列表',
     'User' => '用户',

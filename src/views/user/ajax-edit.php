@@ -47,6 +47,7 @@ $form = ActiveForm::begin([
 <div class="modal-body">
     <?= $form->field($model, 'username')->textInput(['maxlength' => true, 'readonly' => !$model->isNewUser])
         ->hint(Yii::t('srbac', 'Can not modify username after account created')) ?>
+    <?= $form->field($model, 'realname')->textInput(['maxlength' => true]) ?>
     <?= $form->field($model, 'password')->passwordInput()->hint($hint) ?>
     <?= $form->field($model, 'roles')->widget(Select2::class, [
         'data' => $authItems,

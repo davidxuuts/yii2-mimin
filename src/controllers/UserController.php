@@ -62,11 +62,17 @@ class UserController extends BaseController
         }
         $key = trim(Yii::$app->request->get('key', ''));
         if ($key) {
-            $query->andFilterWhere([
-                'or',
-                ['like', 'username', $key],
-                ['like', 'realname', $key],
-            ]);
+            $where = $this->modelClass->hasAttribute('realname')
+                ? [
+                    'or',
+                    ['like', 'username', $key],
+                    ['like', 'realname', $key],
+                ]
+                : [
+                    'or',
+                    ['like', 'username', $key],
+                ];
+            $query->andFilterWhere($where);
         }
         $dataProvider = new ActiveDataProvider([
             'query' => $query,

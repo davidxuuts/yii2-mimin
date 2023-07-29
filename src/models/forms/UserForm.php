@@ -25,6 +25,8 @@ class UserForm extends Model
 
     public ?string $username = null;
 
+    public ?string $realname = null;
+
     public array $roles = [];
 
     public bool $isNewUser = false;
@@ -38,6 +40,7 @@ class UserForm extends Model
     {
         return [
             [['username', 'roles'], 'required'],
+            [['realname'], 'string', 'max' => 50],
             [['password'], 'string', 'min' => 6],
             ['roles', 'in', 'range' => Item::find()->select(['name'])->where([
                 'type' => RbacItem::TYPE_ROLE,
@@ -56,6 +59,7 @@ class UserForm extends Model
         return [
             'password' => Yii::t('srbac', 'Password'),
             'username' => Yii::t('srbac', 'Username'),
+            'realname' => Yii::t('srbac', 'Realname'),
             'roles' => Yii::t('srbac', 'Roles'),
         ];
     }

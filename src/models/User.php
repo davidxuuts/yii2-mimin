@@ -20,6 +20,7 @@ use yii\db\ActiveRecord;
  *
  * @property integer $id ID
  * @property string $username Username
+ * @property string $realname Realname
  * @property string $auth_key Auth key
  * @property string $password_hash Hashed password
  * @property string $password_reset_token Password reset token
@@ -60,7 +61,7 @@ class User extends ActiveRecord
     {
 		return [
 			[['username', 'email'], 'required'],
-			[['username', 'email', 'password_hash'], 'string', 'max' => 255],
+			[['username', 'realname', 'email', 'password_hash'], 'string', 'max' => 255],
 			[['username', 'email'], 'unique'],
 			[['email'], 'email'],
 			['status','integer'],
@@ -94,6 +95,7 @@ class User extends ActiveRecord
 		return [
 			'id' => 'ID',
 			'username' => 'Username',
+            'realname' => 'Realname',
 			'password_hash' => 'Password Hash',
 			'email' => 'Email',
 		];
