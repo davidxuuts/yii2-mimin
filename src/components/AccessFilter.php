@@ -66,8 +66,8 @@ class AccessFilter extends ActionFilter
 	 * Set user instance
 	 * @param string|User $user
 	 */
-	public function setUser(User|string $user)
-	{
+	public function setUser(User|string $user): void
+    {
 		$this->_user = $user;
 	}
 
@@ -102,8 +102,8 @@ class AccessFilter extends ActionFilter
 	 * @param User|string $user the current user
 	 * @throws ForbiddenHttpException if the user is already logged in.
 	 */
-	protected function denyAccess(User|string $user)
-	{
+	protected function denyAccess(User|string $user): void
+    {
 		if ($user->getIsGuest()) {
 			$user->loginRequired();
 		} else {
