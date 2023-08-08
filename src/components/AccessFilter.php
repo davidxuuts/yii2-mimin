@@ -21,12 +21,12 @@ use yii\base\ActionFilter;
  * As its name indicates, ACF is an action filter that can be attached to a controller or a module as a behavior.
  * ACF will check a set of access rules to make sure the current user can access the requested action.
  *
- * To use AccessControl, declare it in the application config as behavior.
+ * To use AccessFilter, declare it in the application config as behavior.
  * For example.
  *
  * ~~~
  * 'as access' => [
- *     'class' => 'davidxu\srbac\components\AccessControl',
+ *     'class' => 'davidxu\srbac\components\AccessFilter',
  *     'allowActions' => ['site/login', 'site/error']
  * ]
  * ~~~
@@ -82,12 +82,14 @@ class AccessFilter extends ActionFilter
 	{
 		$actionId = $action->getUniqueId();
 		$user = $this->getUser();
-		if ($user->can('/' . $actionId)) {
+
+		if ($user->can('/' . $actionId) || in_array($actionId, $this->allowActions)) {
 			return true;
 		}
 		$obj = $action->controller;
 		do {
-			if ($user->can('/' . ltrim($obj->getUniqueId() . '/*', '/'))) {
+            $path = '/' . ltrim($obj->getUniqueId() . '/*', '/');
+			if ($user->can($path) || in_array($path, $this->allowActions)) {
 				return true;
 			}
 			$obj = $obj->module;
@@ -159,7 +161,7 @@ class AccessFilter extends ActionFilter
 		}
 
 		if ($action->controller->hasMethod('allowAction')
-            && in_array($action->id, $action->controller->allowAction())) {
+            && in_array($action->id, $action->controller->allowAction)) {
 			return false;
 		}
 

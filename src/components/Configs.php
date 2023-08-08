@@ -313,4 +313,13 @@ class Configs extends BaseObject
     {
         return static::instance()->cache ?? Yii::$app->cache;
     }
+
+    /**
+     * @return integer
+     * @throws InvalidConfigException
+     */
+    public static function cacheDuration(): int
+    {
+        return static::instance()->cacheDuration;
+    }
 }
