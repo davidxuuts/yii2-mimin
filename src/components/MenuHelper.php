@@ -76,7 +76,6 @@ class MenuHelper
         $menus = $query->all();
         $key = [__METHOD__, $userId, $manager->defaultRoles];
         $cache = $config->cache;
-
         if ($refresh || $cache === null || ($assigned = $cache->get($key)) === false) {
             $routes = [];
             if ($userId !== null) {
