@@ -7,15 +7,15 @@
 
 namespace davidxu\srbac\models\forms;
 
-use davidxu\config\models\base\User;
+use yii\web\User;
 use davidxu\srbac\models\Assignment;
-use davidxu\srbac\models\Item;
+//use davidxu\srbac\models\Item;
 use yii\base\Exception;
 use yii\base\Model;
 use Yii;
 use yii\db\ActiveRecord;
 use yii\db\ActiveRecordInterface;
-use yii\rbac\Item as RbacItem;
+//use yii\rbac\Item as RbacItem;
 
 class UserForm extends Model
 {
@@ -27,11 +27,11 @@ class UserForm extends Model
 
     public ?string $realname = null;
 
-    public array $roles = [];
+    public string|array|null $roles = [];
 
     public bool $isNewUser = false;
 
-    private ActiveRecord|ActiveRecordInterface|User|null $_user = null;
+    private ActiveRecord|ActiveRecordInterface|null|User|\davidxu\srbac\models\User $_user;
 
     /**
      * {@inheritDoc}
@@ -42,11 +42,12 @@ class UserForm extends Model
             [['username', 'roles'], 'required'],
             [['realname'], 'string', 'max' => 50],
             [['password'], 'string', 'min' => 6],
-            ['roles', 'in', 'range' => Item::find()->select(['name'])->where([
-                'type' => RbacItem::TYPE_ROLE,
-            ])->column(),
-                'allowArray' => true
-            ],
+            ['roles', 'safe'],
+//            ['roles', 'in', 'range' => Item::find()->select(['name'])->where([
+//                'type' => RbacItem::TYPE_ROLE,
+//            ])->column(),
+//                'allowArray' => true
+//            ],
             ['username', 'isUnique'],
         ];
     }
@@ -70,16 +71,13 @@ class UserForm extends Model
      */
     public function loadData(): void
     {
-        $hasMemberServices = isset(Yii::$app->services) && isset(Yii::$app->services->backendMemberServices);
-        if (!$this->id) {
-            $this->isNewUser = true;
-            if ($hasMemberServices) {
+        $hasMemberServices = isset(Yii::$app->services) && isset(Yii::$app->services->childService['backendMemberService']);
+        $backendMemberService = Yii::$app->services->backendMemberService;
+        if ($hasMemberServices) {
+            if (!$this->id) {
+                $this->isNewUser = true;
                 $this->_user = new Yii::$app->services->backendMemberService->modelClass;
             } else {
-                $this->_user = new Yii::$app->user->identityClass;
-            }
-        } else {
-            if ($hasMemberServices) {
                 if ($this->_user = Yii::$app->services->backendMemberService->findById($this->id)) {
                     $this->username = $this->_user->username;
                     $this->roles = Yii::$app->services->backendMemberService->getRoles($this->id);
@@ -87,14 +85,14 @@ class UserForm extends Model
                     $this->_user = new Yii::$app->services->backendMemberService->modelClass;
                     $this->isNewUser = true;
                 }
+            }
+        } else {
+            if ($this->_user = Yii::$app->user->identity) {
+                $this->username = $this->_user->username;
+                $this->roles = $this->getRoles();
             } else {
-                if ($this->_user = Yii::$app->user->identity) {
-                    $this->username = $this->_user->username;
-                    $this->roles = $this->getRoles();
-                } else {
-                    $this->_user = new Yii::$app->user->identityClass;
-                    $this->isNewUser = true;
-                }
+                $this->_user = new Yii::$app->user->identityClass;
+                $this->isNewUser = true;
             }
         }
     }
@@ -105,13 +103,20 @@ class UserForm extends Model
      */
     public function isUnique(): void
     {
-        if (isset(Yii::$app->services) && isset(Yii::$app->services->backendMemberService)) {
+        if (isset(Yii::$app->services->backendMemberService)) {
             $member = Yii::$app->services->backendMemberService->modelClass::findOne(['username' => $this->username]);
         } else {
+            /** @var User $modelClass */
             $modelClass = Yii::$app->user->identityClass;
-            $member = $modelClass::findByUsername($this->username);
+
+            if ($modelClass instanceof User || $modelClass instanceof \davidxu\srbac\models\User) {
+                $member = $modelClass::findByUsername($this->username);
+            } else {
+                $member = null;
+            }
         }
-        if ($member && $member->id !== (int)$this->id) {
+        /** @var User $member */
+        if (($member instanceof User) && $member->id !== (int)$this->id) {
             $this->addError('username', Yii::t('app', 'Username has been token'));
         }
     }
@@ -126,9 +131,9 @@ class UserForm extends Model
         try {
             $member = $this->_user;
             if ($this->isNewUser) {
-                $member->auth_key = Yii::$app->security->generateRandomKey();
+                $member->auth_key = Yii::$app->security->generateRandomString();
                 if (empty($this->password)) {
-                    $this->password = Yii::$app->security->generateRandomKey(10);
+                    $this->password = Yii::$app->security->generateRandomString(10);
                 }
                 $member->password_hash = Yii::$app->security->generatePasswordHash($this->password);
             } else if (!(
@@ -160,7 +165,8 @@ class UserForm extends Model
             }
             $transaction->commit();
             return true;
-        } catch (Exception) {
+        } catch (Exception $exception) {
+            Yii::info($exception->getMessage());
             $transaction->rollBack();
             return false;
         }
@@ -180,6 +186,7 @@ class UserForm extends Model
             $items = [];
             if ($roles) {
                 foreach ($roles as $role) {
+                    /** @var Assignment $role */
                     $items[] = $role->item_name;
                 }
             }

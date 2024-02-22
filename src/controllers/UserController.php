@@ -11,8 +11,10 @@ use davidxu\base\enums\StatusEnum;
 use davidxu\base\helpers\ActionHelper;
 use davidxu\config\components\BaseController;
 use davidxu\srbac\components\Helper;
+use davidxu\srbac\models\forms\PasswordForm;
 use Yii;
 use davidxu\srbac\models\forms\UserForm;
+use yii\base\Exception;
 use yii\base\ExitException;
 use yii\base\InvalidConfigException;
 use yii\data\ActiveDataProvider;
@@ -28,6 +30,10 @@ class UserController extends BaseController
 {
     public string|ActiveRecordInterface|null $modelClass = '';
 
+    /**
+     * @return void
+     * @throws InvalidConfigException
+     */
     public function init(): void
     {
         parent::init();
@@ -57,9 +63,9 @@ class UserController extends BaseController
     {
         $query = $this->modelClass::find();
         // TODO auth rule needed
-        if (!($seeAll = true)) {
-            $query->where(['status' => StatusEnum::ENABLED]);
-        }
+//        if (!($seeAll = true)) {
+//            $query->where(['status' => StatusEnum::ENABLED]);
+//        }
         $key = trim(Yii::$app->request->get('key', ''));
         if ($key) {
             $where = $this->modelClass->hasAttribute('realname')
@@ -179,10 +185,41 @@ class UserController extends BaseController
         );
     }
 
-    protected function getRolesByUserId(int $id, string $type = 'array')
+    /**
+     * @return mixed|string
+     * @throws ExitException|Exception
+     */
+    public function actionChangePassword(): mixed
     {
-        if (Yii::$app->components) {
-
+        $model = new PasswordForm();
+        ActionHelper::activeFormValidate($model);
+        if ($model->load(Yii::$app->request->post())) {
+            if (!$model->validate()) {
+                return ActionHelper::message(
+                    ActionHelper::getError($model),
+                    $this->redirect(Yii::$app->request->referrer),
+                    'error'
+                );
+            }
+            $member = Yii::$app->user->identity;
+            $member->password_hash = Yii::$app->security->generatePasswordHash($model->password);
+            if ($member->save()) {
+                Helper::invalidate();
+                Yii::$app->user->logout();
+                return ActionHelper::message(
+                    Yii::t('srbac', 'Update password successfully'),
+                    $this->redirect(['/site/login'])
+                );
+            }
+            return ActionHelper::message(
+                ActionHelper::getError($model),
+                $this->redirect(Yii::$app->request->referrer),
+                'error'
+            );
         }
+
+        return $this->renderAjax($this->action->id, [
+            'model' => $model,
+        ]);
     }
 }

@@ -32,7 +32,7 @@ use davidxu\config\helpers\ArrayHelper;
  */
 class MenuController extends BaseController
 {
-    public string|ActiveRecordInterface|null $modelClass = Menu::class;
+    public string|ActiveRecordInterface|Menu|null $modelClass = Menu::class;
 
     public function actions(): array
     {
@@ -127,10 +127,9 @@ class MenuController extends BaseController
     /**
      * Get Available Routes
      * @param string $q
-     * @param null $id
      * @return array|array[]
      */
-    public function actionAvailableRoutes(string $q = '', $id = null): array
+    public function actionAvailableRoutes(string $q = ''): array
     {
         $query = trim($q);
         $result = [
@@ -154,6 +153,7 @@ class MenuController extends BaseController
 
     /**
      * @return array|null
+     * @throws InvalidConfigException
      */
     protected function getCateDropDown(): ?array
     {

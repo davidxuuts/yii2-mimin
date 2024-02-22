@@ -22,7 +22,7 @@ class SrbacModule extends Module
      */
     public $controllerNamespace = 'davidxu\srbac\controllers';
 
-    public function init()
+    public function init(): void
     {
         parent::init();
 

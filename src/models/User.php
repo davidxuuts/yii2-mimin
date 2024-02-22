@@ -36,7 +36,7 @@ class User extends ActiveRecord
     public ?string $repeat_password = null;
 
 	/**
-	 * @inheritdoc
+	 *
      * @throws InvalidConfigException
      */
 	public static function tableName()
@@ -54,10 +54,7 @@ class User extends ActiveRecord
 		];
 	}
 
-	/**
-	 * @inheritdoc
-	 */
-	public function rules(): array
+    public function rules(): array
     {
 		return [
 			[['username', 'email'], 'required'],
@@ -78,7 +75,7 @@ class User extends ActiveRecord
 	}
 
     /**
-     * {@inheritDoc}
+     * @return array
      */
 	public function scenarios(): array
     {
@@ -118,8 +115,8 @@ class User extends ActiveRecord
      * @param string $password
      * @throws Exception
      */
-	public function setPassword(string $password)
-	{
+	public function setPassword(string $password): void
+    {
 		$this->password_hash = Yii::$app->security->generatePasswordHash($password);
 	}
 

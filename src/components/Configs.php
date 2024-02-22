@@ -150,8 +150,8 @@ class Configs extends BaseObject
 	 * @inheritdoc
      * @throws InvalidConfigException
      */
-	public function init()
-	{
+	public function init(): void
+    {
 		if (!($this->db instanceof Connection)) {
 			if (is_string($this->db) && !str_contains($this->db, '\\')) {
 				$this->db = Yii::$app->get($this->db, false);

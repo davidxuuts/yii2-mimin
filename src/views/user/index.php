@@ -60,13 +60,10 @@ $this->params['breadcrumbs'][] = $this->title;
                             'format' => 'raw',
                             'value' => function ($model) {
                                 $roles = [];
-                                $hasMemberServices = isset(Yii::$app->services) && isset(Yii::$app->services->backendMemberService);
-                                if ($hasMemberServices) {
+                                if (isset(Yii::$app->services) && Yii::$app->services->backendMemberService !== null) {
                                     $roles = Yii::$app->services->backendMemberService->getRoles($model->id);
                                 }
-//                                return implode(', ', $model->rolesName);
-                                return implode(', ', $roles);
-//                                return implode(', ', Yii::$app->services->backendMemberService->getRoles($model->id));
+                                return $roles ? implode(', ', $roles) : '';
                             }
                         ],
                         [

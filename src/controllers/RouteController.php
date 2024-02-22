@@ -117,13 +117,22 @@ class RouteController extends BaseController
         $modelClass = $this->modelClass;
         $key = [__METHOD__, Yii::$app->id];
         $cache = Configs::instance()->cache;
-        if ($cache === null || ($routes = $cache->get($key)) === false) {
-            $routes = [];
-            $this->getRouteRecursive(Yii::$app, $routes);
-            $cache->set($key, $routes, Configs::instance()->cacheDuration, new TagDependency([
-                'tags' => Route::CACHE_TAG
-            ]));
+        if ($cache) {
+            Yii::info($cache->get($key));
         }
+
+        $routes = [];
+        $this->getRouteRecursive(Yii::$app, $routes);
+        $cache->set($key, $routes, Configs::instance()->cacheDuration, new TagDependency([
+            'tags' => Route::CACHE_TAG
+        ]));
+//        if ($cache === null || ($routes = $cache->get($key)) === false) {
+//            $routes = [];
+//            $this->getRouteRecursive(Yii::$app, $routes);
+//            $cache->set($key, $routes, Configs::instance()->cacheDuration, new TagDependency([
+//                'tags' => Route::CACHE_TAG
+//            ]));
+//        }
         $exists = $modelClass::find()->select(['name'])->column();
         $routes = array_diff($routes, $exists);
         $routes = array_unique($routes);
