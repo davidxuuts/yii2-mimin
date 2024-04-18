@@ -7,6 +7,7 @@
 
 namespace davidxu\srbac\models;
 
+use davidxu\base\enums\BooleanEnum;
 use davidxu\base\enums\StatusEnum;
 use davidxu\srbac\components\Configs;
 use Exception;
@@ -20,6 +21,8 @@ use yii\db\ActiveRecord;
  * @property string $name Route name
  * @property string $alias Route alias
  * @property string $type Route type
+ * @property string|null $type_name Route type name
+ * @property int|null $is_auto Auto authorize
  * @property int $status Route available status
  *
  * @property Menu[] $menus
@@ -46,8 +49,10 @@ class Route extends ActiveRecord
     {
 		return [
             [['name', 'alias'], 'required'],
-            [['name', 'alias', 'type'], 'string', 'max' => 64],
+            [['name', 'alias', 'type', 'type_name'], 'string', 'max' => 64],
             [['name'], 'unique'],
+            [['is_auto', 'status'], 'integer'],
+            [['is_auto'], 'default', 'value' => BooleanEnum::NO],
             [['status'], 'default', 'value' => StatusEnum::ENABLED],
 		];
 	}
@@ -60,7 +65,9 @@ class Route extends ActiveRecord
 		return [
 			'name' => Yii::t('srbac', 'Route'),
 			'type' => Yii::t('srbac', 'Type'),
+            'type_name' => Yii::t('srbac', 'Type name'),
             'alias' => Yii::t('srbac', 'Alias'),
+            'is_auto' => Yii::t('srbac', 'Auto authorize'),
 			'status' => Yii::t('base', 'Status'),
 		];
 	}

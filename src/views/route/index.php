@@ -52,9 +52,11 @@ $this->params['breadcrumbs'][] = $this->title;
                     'tableOptions' => ['class' => 'table table-bordered'],
                     'columns' => [
                         ['class' => SerialColumn::class],
+                        'type_name',
                         'type',
                         'name',
                         'alias',
+                        'is_auto:boolean',
                         [
                             'class' => ActionColumn::class,
                             'header' => Yii::t('app', 'Operate'),

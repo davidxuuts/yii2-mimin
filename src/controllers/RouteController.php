@@ -88,9 +88,9 @@ class RouteController extends BaseController
      */
     public function actionAjaxEdit(): mixed
     {
-        $id = Yii::$app->request->get('id', 0);
+        $name = Yii::$app->request->get('id');
         /** @var Route $model */
-        $model = $this->findModel($id);
+        $model = $this->findModel($name);
         ActionHelper::activeFormValidate($model);
         if ($model->load(Yii::$app->request->post())) {
             if ($model->save()) {

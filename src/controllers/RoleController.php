@@ -7,6 +7,7 @@
 
 namespace davidxu\srbac\controllers;
 
+use davidxu\base\enums\BooleanEnum;
 use davidxu\base\helpers\ActionHelper;
 use davidxu\config\components\BaseController;
 use davidxu\base\enums\StatusEnum;
@@ -19,8 +20,10 @@ use Throwable;
 use Yii;
 use davidxu\srbac\models\Item;
 use yii\base\ExitException;
+use yii\base\InvalidConfigException;
 use yii\db\ActiveRecordInterface;
 use yii\db\StaleObjectException;
+use yii\helpers\Json;
 use yii\rbac\Item as RbacItem;
 use yii\data\ActiveDataProvider;
 use yii\web\Response;
@@ -78,7 +81,10 @@ class RoleController extends BaseController
         $query = Route::find()
             ->groupBy(['type'])
             ->distinct()
-            ->where(['status' => StatusEnum::ENABLED]);
+            ->where([
+                'is_auto' => BooleanEnum::NO,
+                'status' => StatusEnum::ENABLED,
+            ]);
         $dataProvider = new ActiveDataProvider([
             'query' => $query,
             'sort' => [
@@ -124,9 +130,11 @@ class RoleController extends BaseController
             $role->ruleName = $model->rule_name;
             $role->createdAt = $model->created_at;
             $role->updatedAt = $model->created_at;
+            Yii::info(Json::encode($role));
             $success = $model->isNewRecord ? $auth->add($role) : $auth->update($model->name, $role);
             if ($success) {
                 Helper::invalidate();
+                $this->autoAuthorize($role->name);
                 return ActionHelper::message(Yii::t('srbac', 'Saved successfully'),
                     $this->redirect(Yii::$app->request->referrer));
             }
@@ -193,4 +201,41 @@ class RoleController extends BaseController
         Helper::invalidate();
 		return ['data' => $msg];
 	}
+
+    /**
+     * @param string $role_name
+     * @return void
+     * @throws \yii\base\Exception
+     * @throws InvalidConfigException
+     * @throws Exception
+     */
+    private function autoAuthorize(string $role_name): void
+    {
+        $auth = Yii::$app->authManager;
+        $roleExist = $auth->getRole($role_name);
+        $autoAuthorizePermissions = Route::find()
+            ->select('name')
+            ->groupBy(['type'])
+            ->distinct()
+            ->where([
+                'is_auto' => BooleanEnum::YES,
+                'status' => StatusEnum::ENABLED,
+            ])->column();
+        Yii::info($autoAuthorizePermissions);
+
+        if ($roleExist && $autoAuthorizePermissions) {
+            $role = $auth->createRole($role_name);
+            foreach ($autoAuthorizePermissions as $permission_name) {
+                $permissionExist = $auth->getPermission($permission_name);
+                $permission = $auth->createPermission($permission_name);
+                if (!$permissionExist) {
+                    $auth->add($permission);
+                }
+                if (!$auth->hasChild($role, $permission)) {
+                    $auth->addChild($role, $permission);
+                }
+            }
+            Helper::invalidate();
+        }
+    }
 }

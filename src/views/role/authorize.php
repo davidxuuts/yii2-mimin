@@ -33,6 +33,7 @@ $this->params['breadcrumbs'][] = $this->title;
                     'dataProvider' => $dataProvider,
                     'tableOptions' => ['class' => 'table table-bordered table-hover'],
                     'columns' => [
+                        'type_name',
                         'type',
                         [
                             'label' => Yii::t('srbac', 'Permissions'),

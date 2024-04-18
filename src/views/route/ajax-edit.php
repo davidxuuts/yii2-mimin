@@ -5,6 +5,7 @@
  * All rights reserved.
  */
 
+use davidxu\base\enums\BooleanEnum;
 use yii\base\InvalidConfigException;
 use yii\bootstrap4\ActiveForm;
 use yii\helpers\Url;
@@ -41,6 +42,8 @@ $form = ActiveForm::begin([
 <div class="modal-body">
     <?= $form->field($model, 'name')->textInput(['maxlength' => true]) ?>
     <?= $form->field($model, 'type')->textInput(['maxlength' => true]) ?>
+    <?= $form->field($model, 'type_name')->textInput(['maxlength' => true]) ?>
+    <?= $form->field($model, 'is_auto')->inline()->radioList(BooleanEnum::getMap()) ?>
     <?= $form->field($model, 'alias')->textInput(['maxlength' => true]) ?>
 </div>
 <?php

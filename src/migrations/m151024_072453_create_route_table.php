@@ -34,6 +34,8 @@ class m151024_072453_create_route_table extends Migration
 			'name' => $this->string(64)->notNull(),
 			'alias' => $this->string(64)->notNull(),
 			'type' => $this->string(64)->notNull(),
+            'type_name' => $this->string(64)->defaultValue(null),
+            'is_auto' => $this->tinyInteger(2)->null()->defaultValue(0),
 			'status' => $this->smallInteger()->notNull()->defaultValue(1),
             'PRIMARY KEY ([[name]])',
 		], $tableOptions);
